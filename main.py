@@ -52,7 +52,7 @@ def alert(clinicianID, outside_type):
     # send email
     sender = os.getenv("SENDER_EMAIL") 
     passkey = os.getenv("SENDER_PASSKEY")
-    receiver = "wwpca3+2knt3o4qee243imloltrwxfw7aw@guerrillamail.info"
+    receiver = "coding-challenges+alerts@sprinterhealth.com"
     if outside_type:
         reason = "is outside of safe zone"
     else:
