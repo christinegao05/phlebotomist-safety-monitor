@@ -8,10 +8,11 @@ import time
 
 # we'll add to set upon alerting, and remove when they've re-enter safe zone
 alerted = set()
+
+# gets my hidden email + pw 
 load_dotenv()
 
 def check_clinician(clinicianID):
-    # gets my hidden email + pw 
 
     url = f"https://3qbqr98twd.execute-api.us-west-2.amazonaws.com/test/clinicianstatus/{clinicianID}"
 
@@ -37,23 +38,25 @@ def check_clinician(clinicianID):
             print(f"Clinician {clinicianID} is outside the safe zone.")
             # alert if we haven't already
             if clinicianID not in alerted:
-                alert(clinicianID, "is outside of safe zone")
+                alert(clinicianID, True)
         else:
             print(f"Clinician {clinicianID} is inside the safe zone.")
             # if  previously outside safe zone, remove from alerted set
             if clinicianID in alerted:
                 alerted.remove(clinicianID)
     except Exception as e:
-        if clinicianID not in alerted:
-            alert(clinicianID, "endpoint did not return")
+        alert(clinicianID, False)
 
 
-def alert(clinicianID, reason):
+def alert(clinicianID, outside_type):
     # send email
     sender = os.getenv("SENDER_EMAIL") 
     passkey = os.getenv("SENDER_PASSKEY")
     receiver = "wwpca3+2knt3o4qee243imloltrwxfw7aw@guerrillamail.info"
-
+    if outside_type:
+        reason = "is outside of safe zone"
+    else:
+        reason = "endpoint did not return"
     alert_msg = EmailMessage()
     alert_msg.set_content(f"Clinician {clinicianID} {reason}.")
     alert_msg['Subject'] = f"ALERT: Clinician in danger!"
@@ -68,7 +71,8 @@ def alert(clinicianID, reason):
     print(f"Sent email alert for clinician {clinicianID}.")
 
     # add to alerted set
-    alerted.add(clinicianID)
+    if outside_type:
+        alerted.add(clinicianID)
 
 
 if __name__ == "__main__":
