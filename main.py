@@ -22,8 +22,8 @@ def check_clinician(clinicianID):
         response.raise_for_status() # throws exception if status not right
         
         data = response.json()
-        import json
-        print(json.dumps(data))
+        # import json
+        # print(json.dumps(data))
 
         # idx 0 = clinician loc
         # idx 1 = safe range
@@ -72,8 +72,8 @@ def alert(clinicianID, reason):
     # send email
     sender = os.getenv("SENDER_EMAIL") 
     passkey = os.getenv("SENDER_PASSKEY")
-    receiver = "wyubyf+6z2k5ndkdunh8@sharklasers.com"
-    # receiver = "coding-challenges+alerts@sprinterhealth.com"
+    # receiver = "wyubyf+6z2k5ndkdunh8@sharklasers.com"
+    receiver = "coding-challenges+alerts@sprinterhealth.com"
 
     alert_msg = EmailMessage()
     alert_msg.set_content(f"Clinician {clinicianID} {reason}.")
