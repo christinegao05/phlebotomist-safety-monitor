@@ -27,11 +27,23 @@ def check_clinician(clinicianID):
 
         # idx 0 = clinician loc
         # idx 1 = safe range
-        clinician_loc = shape(data['features'][0]['geometry'])
-        safe_zone = shape(data['features'][1]['geometry'])
+        
+        clinician_loc = None
+        safe_zones = []
+
+        for feature in data.get('features', []):
+            geo_type = feature['geometry']['type']
+            if geo_type == "Point":
+                clinician_loc = shape(feature['geometry'])
+            elif geo_type in ["Polygon", "MultiPolygon"]:
+                safe_zones.append(shape(feature['geometry']))
+        
+        if not clinician_loc or not safe_zones:
+            print("Missing clinician or safe zone data")
+            return
 
         # clinician is safe if their loc is within the bounding zone
-        is_safe = safe_zone.intersects(clinician_loc)
+        is_safe = any(zone.intersects(clinician_loc) for zone in safe_zones)
 
         if not is_safe:
             print(f"Clinician {clinicianID} is outside the safe zone.")
@@ -60,7 +72,8 @@ def alert(clinicianID, reason):
     # send email
     sender = os.getenv("SENDER_EMAIL") 
     passkey = os.getenv("SENDER_PASSKEY")
-    receiver = "coding-challenges+alerts@sprinterhealth.com"
+    receiver = "wyubyf+6z2k5ndkdunh8@sharklasers.com"
+    # receiver = "coding-challenges+alerts@sprinterhealth.com"
 
     alert_msg = EmailMessage()
     alert_msg.set_content(f"Clinician {clinicianID} {reason}.")
