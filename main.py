@@ -7,7 +7,8 @@ from dotenv import load_dotenv
 import time
 
 # we'll add to set upon alerting, and remove when they've re-enter safe zone
-alerted = set()
+alerted_safety = set()
+alerted_api = set()
 
 # gets my hidden email + pw 
 load_dotenv()
@@ -17,14 +18,12 @@ def check_clinician(clinicianID):
     url = f"https://3qbqr98twd.execute-api.us-west-2.amazonaws.com/test/clinicianstatus/{clinicianID}"
 
     try:
-        response = requests.get(url)
-        if response.status_code != 200:
-            print(f"Could not find clinician {clinicianID}")
-            return
+        response = requests.get(url, timeout=10)
+        response.raise_for_status() # throws exception if status not right
         
         data = response.json()
-        # import json
-        # print(json.dumps(data))
+        import json
+        print(json.dumps(data))
 
         # idx 0 = clinician loc
         # idx 1 = safe range
@@ -37,26 +36,32 @@ def check_clinician(clinicianID):
         if not is_safe:
             print(f"Clinician {clinicianID} is outside the safe zone.")
             # alert if we haven't already
-            if clinicianID not in alerted:
-                alert(clinicianID, True)
+            if clinicianID not in alerted_safety:
+                alert(clinicianID, "is outside of safe zone")
+                alerted_safety.add(clinicianID)
         else:
             print(f"Clinician {clinicianID} is inside the safe zone.")
             # if  previously outside safe zone, remove from alerted set
-            if clinicianID in alerted:
-                alerted.remove(clinicianID)
+            if clinicianID in alerted_safety:
+                alerted_safety.remove(clinicianID)
+
+        # if we reach here, API worked
+        if clinicianID in alerted_api:
+            alerted_api.remove(clinicianID)
+    
     except Exception as e:
-        alert(clinicianID, False)
+        print(f"Clinician {clinicianID} API error")
+        if clinicianID not in alerted_api:    
+            alert(clinicianID, "endpoint did not return")
+            alerted_api.add(clinicianID)
 
 
-def alert(clinicianID, outside_type):
+def alert(clinicianID, reason):
     # send email
     sender = os.getenv("SENDER_EMAIL") 
     passkey = os.getenv("SENDER_PASSKEY")
     receiver = "coding-challenges+alerts@sprinterhealth.com"
-    if outside_type:
-        reason = "is outside of safe zone"
-    else:
-        reason = "endpoint did not return"
+
     alert_msg = EmailMessage()
     alert_msg.set_content(f"Clinician {clinicianID} {reason}.")
     alert_msg['Subject'] = f"ALERT: Clinician in danger!"
@@ -69,10 +74,6 @@ def alert(clinicianID, outside_type):
         server.send_message(alert_msg)
 
     print(f"Sent email alert for clinician {clinicianID}.")
-
-    # add to alerted set
-    if outside_type:
-        alerted.add(clinicianID)
 
 
 if __name__ == "__main__":
